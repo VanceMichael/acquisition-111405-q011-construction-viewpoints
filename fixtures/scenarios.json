@@ -1,0 +1,284 @@
+[
+  {
+    "name": "selection-not-visibility",
+    "routes": [
+      {
+        "path": "/issues",
+        "body": {
+          "topics": [
+            "/topic/1"
+          ]
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/topic/1",
+        "body": {
+          "topicId": "t1",
+          "revision": 1,
+          "viewpoints": [
+            "/view/1"
+          ],
+          "documents": []
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/view/1",
+        "body": {
+          "id": "v1",
+          "model": {
+            "project": "p",
+            "revision": "r1"
+          },
+          "visibility": {
+            "default": true,
+            "exceptions": [
+              "c2"
+            ]
+          },
+          "selection": [
+            "c2"
+          ],
+          "coloring": [],
+          "snapshot": null
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/models/p/r1",
+        "body": {
+          "components": [
+            "c1",
+            "c2"
+          ]
+        },
+        "status": 200,
+        "method": "GET"
+      }
+    ],
+    "expected": [
+      {
+        "topicId": "t1",
+        "viewpointId": "v1",
+        "modelKey": "p/r1",
+        "selected": [
+          "p/r1/c2"
+        ],
+        "visibility": {
+          "default": true,
+          "exceptions": [
+            "p/r1/c2"
+          ]
+        }
+      }
+    ],
+    "forbidden": []
+  },
+  {
+    "name": "missing-model",
+    "routes": [
+      {
+        "path": "/issues",
+        "body": {
+          "topics": [
+            "/topic/1"
+          ]
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/topic/1",
+        "body": {
+          "topicId": "t1",
+          "revision": 2,
+          "viewpoints": [
+            "/view/2"
+          ],
+          "documents": []
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/view/2",
+        "body": {
+          "id": "v2",
+          "model": {
+            "project": "p",
+            "revision": "old"
+          },
+          "visibility": {
+            "default": false,
+            "exceptions": []
+          },
+          "selection": [
+            "c1"
+          ],
+          "coloring": [],
+          "snapshot": null
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/models/p/old",
+        "body": {
+          "error": "unavailable"
+        },
+        "status": 404,
+        "method": "GET"
+      }
+    ],
+    "expected": [
+      {
+        "topicId": "t1",
+        "viewpointId": "v2",
+        "unresolvedComponents": [
+          "p/old/c1"
+        ]
+      }
+    ],
+    "forbidden": []
+  },
+  {
+    "name": "empty-selection-visible-all",
+    "routes": [
+      {
+        "path": "/issues",
+        "body": {
+          "topics": [
+            "/topic/1"
+          ]
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/topic/1",
+        "body": {
+          "topicId": "t1",
+          "revision": 1,
+          "viewpoints": [
+            "/view/1"
+          ],
+          "documents": []
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/view/1",
+        "body": {
+          "id": "v1",
+          "model": {
+            "project": "p",
+            "revision": "r1"
+          },
+          "visibility": {
+            "default": true,
+            "exceptions": []
+          },
+          "selection": [],
+          "coloring": [],
+          "snapshot": null
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/models/p/r1",
+        "body": {
+          "components": [
+            "c1",
+            "c2"
+          ]
+        },
+        "status": 200,
+        "method": "GET"
+      }
+    ],
+    "expected": [
+      {
+        "topicId": "t1",
+        "viewpointId": "v1",
+        "selected": []
+      }
+    ],
+    "forbidden": []
+  },
+  {
+    "name": "unknown-component",
+    "routes": [
+      {
+        "path": "/issues",
+        "body": {
+          "topics": [
+            "/topic/1"
+          ]
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/topic/1",
+        "body": {
+          "topicId": "t1",
+          "revision": 1,
+          "viewpoints": [
+            "/view/1"
+          ],
+          "documents": []
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/view/1",
+        "body": {
+          "id": "v1",
+          "model": {
+            "project": "p",
+            "revision": "r1"
+          },
+          "visibility": {
+            "default": true,
+            "exceptions": []
+          },
+          "selection": [
+            "c9"
+          ],
+          "coloring": [],
+          "snapshot": null
+        },
+        "status": 200,
+        "method": "GET"
+      },
+      {
+        "path": "/models/p/r1",
+        "body": {
+          "components": [
+            "c1",
+            "c2"
+          ]
+        },
+        "status": 200,
+        "method": "GET"
+      }
+    ],
+    "expected": [
+      {
+        "topicId": "t1",
+        "viewpointId": "v1",
+        "unresolvedComponents": [
+          "p/r1/c9"
+        ]
+      }
+    ],
+    "forbidden": []
+  }
+]

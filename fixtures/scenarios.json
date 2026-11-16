@@ -280,5 +280,140 @@
       }
     ],
     "forbidden": []
+  },
+  {
+    "name": "attachments-and-coloring",
+    "routes": [
+      {"path": "/issues", "body": {"topics": ["/topic/1"]}, "status": 200, "method": "GET"},
+      {"path": "/topic/1", "body": {"topicId": "t1", "revision": 1, "viewpoints": ["/view/1"], "documents": ["/doc/1"]}, "status": 200, "method": "GET"},
+      {"path": "/view/1", "body": {"id": "v1", "model": {"project": "p", "revision": "r1"}, "visibility": {"default": false, "exceptions": ["c1"]}, "selection": ["c2", "c3"], "coloring": [{"color": "red", "components": ["c2"]}, {"color": "blue", "components": ["c1"]}], "snapshot": "/snap/1"}, "status": 200, "method": "GET"},
+      {"path": "/models/p/r1", "body": {"components": ["c1", "c2"]}, "status": 200, "method": "GET"},
+      {"path": "/snap/1", "body": {"$hex": "89504e470d0a1a0a"}, "status": 200, "method": "GET"},
+      {"path": "/doc/1", "body": "协调员补充说明", "status": 200, "method": "GET"}
+    ],
+    "expected": [
+      {
+        "topicId": "t1",
+        "viewpointId": "v1",
+        "modelKey": "p/r1",
+        "selected": ["p/r1/c2"],
+        "visibility": {"default": false, "exceptions": ["p/r1/c1"]},
+        "coloring": [
+          {"color": "red", "components": ["p/r1/c2"]},
+          {"color": "blue", "components": ["p/r1/c1"]}
+        ],
+        "unresolvedComponents": ["p/r1/c3"],
+        "attachments": [
+          {"kind": "snapshot", "href": "/snap/1", "mediaType": "application/octet-stream"},
+          {"kind": "document", "href": "/doc/1", "mediaType": "text/plain; charset=utf-8"}
+        ]
+      }
+    ],
+    "forbidden": [
+      {"selected": ["p/r1/c3"]},
+      {"unresolvedComponents": ["p/r1/c2"]}
+    ],
+    "complete": false
+  },
+  {
+    "name": "stable-repeated-runs",
+    "runs": 2,
+    "routes": [
+      {"path": "/issues", "body": {"topics": ["/topic/1"]}, "status": 200, "method": "GET"},
+      {"path": "/topic/1", "body": {"topicId": "t1", "revision": 1, "viewpoints": ["/view/1"], "documents": []}, "status": 200, "method": "GET"},
+      {"path": "/view/1", "body": {"id": "v1", "model": {"project": "p", "revision": "r1"}, "visibility": {"default": true, "exceptions": []}, "selection": ["c1"], "coloring": [], "snapshot": null}, "status": 200, "method": "GET"},
+      {"path": "/models/p/r1", "body": {"components": ["c1", "c2"]}, "status": 200, "method": "GET"}
+    ],
+    "expected": [
+      {"topicId": "t1", "viewpointId": "v1", "selected": ["p/r1/c1"], "unresolvedComponents": []}
+    ],
+    "forbidden": [],
+    "complete": true
+  },
+  {
+    "name": "viewpoint-revision-changes",
+    "runs": 2,
+    "routes": [
+      {"path": "/issues", "body": {"topics": ["/topic/1"]}, "status": 200, "method": "GET"},
+      {"path": "/topic/1", "body": {"topicId": "t1", "revision": 1, "viewpoints": ["/view/1"], "documents": []}, "status": 200, "method": "GET"},
+      {"path": "/topic/1", "body": {"topicId": "t1", "revision": 2, "viewpoints": ["/view/2"], "documents": []}, "status": 200, "method": "GET"},
+      {"path": "/view/1", "body": {"id": "v1", "model": {"project": "p", "revision": "r1"}, "visibility": {"default": true, "exceptions": []}, "selection": ["c1"], "coloring": [], "snapshot": null}, "status": 200, "method": "GET"},
+      {"path": "/view/2", "body": {"id": "v2", "model": {"project": "p", "revision": "r2"}, "visibility": {"default": true, "exceptions": []}, "selection": ["c2"], "coloring": [], "snapshot": null}, "status": 200, "method": "GET"},
+      {"path": "/models/p/r1", "body": {"components": ["c1"]}, "status": 200, "method": "GET"},
+      {"path": "/models/p/r2", "body": {"components": ["c2"]}, "status": 200, "method": "GET"}
+    ],
+    "expected": [
+      {"topicId": "t1", "viewpointId": "v2", "modelKey": "p/r2", "selected": ["p/r2/c2"]}
+    ],
+    "forbidden": []
+  },
+  {
+    "name": "topic-unavailable",
+    "routes": [
+      {"path": "/issues", "body": {"topics": ["/topic/1"]}, "status": 200, "method": "GET"},
+      {"path": "/topic/1", "body": {"error": "failed"}, "status": 500, "method": "GET"}
+    ],
+    "expected": [],
+    "forbidden": [],
+    "maximumRequests": 2
+  },
+  {
+    "name": "malformed-viewpoint",
+    "routes": [
+      {"path": "/issues", "body": {"topics": ["/topic/1"]}, "status": 200, "method": "GET"},
+      {"path": "/topic/1", "body": {"topicId": "t1", "revision": 1, "viewpoints": ["/view/1"], "documents": []}, "status": 200, "method": "GET"},
+      {"path": "/view/1", "body": {"id": "v1"}, "status": 200, "method": "GET"}
+    ],
+    "expected": [],
+    "forbidden": [],
+    "maximumRequests": 3
+  },
+  {
+    "name": "model-index-malformed",
+    "routes": [
+      {"path": "/issues", "body": {"topics": ["/topic/1"]}, "status": 200, "method": "GET"},
+      {"path": "/topic/1", "body": {"topicId": "t1", "revision": 1, "viewpoints": ["/view/1"], "documents": []}, "status": 200, "method": "GET"},
+      {"path": "/view/1", "body": {"id": "v1", "model": {"project": "p", "revision": "r1"}, "visibility": {"default": true, "exceptions": []}, "selection": ["c1"], "coloring": [], "snapshot": null}, "status": 200, "method": "GET"},
+      {"path": "/models/p/r1", "body": "损坏的索引", "status": 200, "method": "GET"}
+    ],
+    "expected": [
+      {"topicId": "t1", "viewpointId": "v1", "unresolvedComponents": ["p/r1/c1"]}
+    ],
+    "forbidden": [
+      {"selected": ["p/r1/c1"]}
+    ],
+    "complete": false
+  },
+  {
+    "name": "attachment-missing",
+    "routes": [
+      {"path": "/issues", "body": {"topics": ["/topic/1"]}, "status": 200, "method": "GET"},
+      {"path": "/topic/1", "body": {"topicId": "t1", "revision": 1, "viewpoints": ["/view/1"], "documents": []}, "status": 200, "method": "GET"},
+      {"path": "/view/1", "body": {"id": "v1", "model": {"project": "p", "revision": "r1"}, "visibility": {"default": true, "exceptions": []}, "selection": ["c1"], "coloring": [], "snapshot": "/snap/gone"}, "status": 200, "method": "GET"},
+      {"path": "/models/p/r1", "body": {"components": ["c1"]}, "status": 200, "method": "GET"},
+      {"path": "/snap/gone", "body": {"error": "released"}, "status": 410, "method": "GET"}
+    ],
+    "expected": [
+      {"topicId": "t1", "viewpointId": "v1", "selected": ["p/r1/c1"], "attachments": []}
+    ],
+    "forbidden": [],
+    "complete": false
+  },
+  {
+    "name": "two-viewpoints-share-model",
+    "routes": [
+      {"path": "/issues", "body": {"topics": ["/topic/1"]}, "status": 200, "method": "GET"},
+      {"path": "/topic/1", "body": {"topicId": "t1", "revision": 1, "viewpoints": ["/view/1", "/view/2"], "documents": []}, "status": 200, "method": "GET"},
+      {"path": "/view/1", "body": {"id": "v1", "model": {"project": "p", "revision": "r1"}, "visibility": {"default": true, "exceptions": []}, "selection": ["c1"], "coloring": [], "snapshot": null}, "status": 200, "method": "GET"},
+      {"path": "/view/2", "body": {"id": "v2", "model": {"project": "p", "revision": "r1"}, "visibility": {"default": false, "exceptions": ["c2"]}, "selection": ["c2"], "coloring": [], "snapshot": null}, "status": 200, "method": "GET"},
+      {"path": "/models/p/r1", "body": {"components": ["c1", "c2"]}, "status": 200, "method": "GET"}
+    ],
+    "expected": [
+      {"topicId": "t1", "viewpointId": "v1", "modelKey": "p/r1", "selected": ["p/r1/c1"]},
+      {"topicId": "t1", "viewpointId": "v2", "modelKey": "p/r1", "selected": ["p/r1/c2"], "visibility": {"default": false, "exceptions": ["p/r1/c2"]}}
+    ],
+    "forbidden": [],
+    "maximumRequests": 5,
+    "complete": true
   }
 ]

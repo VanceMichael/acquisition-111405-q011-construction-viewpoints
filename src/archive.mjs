@@ -32,6 +32,15 @@ export async function openArchive(directory) {
   let tail = Promise.resolve();
   return {
     snapshot: () => structuredClone(state),
+    /** 按业务标识列出全部修订（旧→新），状态更新后旧视点仍可回查。 */
+    history(id) {
+      return structuredClone(state.records.filter(record => record.id === id));
+    },
+    /** 取某个业务标识的最新修订；旧修订仍留在 history 中。 */
+    latest(id) {
+      const versions = state.records.filter(record => record.id === id);
+      return versions.length ? structuredClone(versions[versions.length - 1]) : null;
+    },
     async raw(hash) {
       if (!/^[a-f0-9]{64}$/.test(hash)) throw new Error('原文引用无效');
       const bytes = await readFile(join(directory, 'raw', hash));
@@ -55,7 +64,23 @@ export async function openArchive(directory) {
             next.records.push({...structuredClone(record), revision});
           }
         }
-        next.issues.push(...structuredClone(issues));
+        for (const item of issues) {
+          // 同一业务缺口在重复领取时只记一次；端口、状态码等运行细节不参与缺口身份，
+          // 但原条目（含来源位置）仍完整保留供复核。
+          const identity = Object.fromEntries(Object.entries(item)
+            .filter(([key]) => !['url', 'status', 'method', 'fingerprint'].includes(key)));
+          const fingerprint = digest(Buffer.from(JSON.stringify(identity)));
+          if (!Array.isArray(next.issues)) next.issues = [];
+          if (!Array.isArray(next.issueFingerprints)) {
+            next.issueFingerprints = next.issues.map(previous => previous.fingerprint
+              ?? digest(Buffer.from(JSON.stringify(Object.fromEntries(Object.entries(previous)
+                .filter(([key]) => !['url', 'status', 'method', 'fingerprint'].includes(key)))))));
+          }
+          if (!next.issueFingerprints.includes(fingerprint)) {
+            next.issueFingerprints.push(fingerprint);
+            next.issues.push({...structuredClone(item), fingerprint});
+          }
+        }
         await atomicWrite(indexPath, JSON.stringify(next, null, 2) + '\n');
         state = next;
         return structuredClone(state);
